@@ -74,57 +74,8 @@ This project spans all four domains. Here is where each phase of our work falls:
 
 ### XTTS-v2 Model Components
 
-```
-                        XTTS-v2 Architecture
-    ================================================================
-
-    Input Text                    Reference Audio (Speaker)
-        |                              |
-        v                              v
-    +------------------+     +--------------------+
-    | VoiceBPE         |     | Mel Spectrogram    |
-    | Tokenizer        |     | Extraction         |
-    | (6,681 tokens)   |     | (80-channel, 22kHz)|
-    +------------------+     +--------------------+
-        |                         |            |
-        v                         v            v
-    +--------+           +--------------+  +----------+
-    | [ar] + |           | Conditioning |  | ResNet50 |
-    | Token  |           | Encoder      |  | Speaker  |
-    | IDs    |           | (6 attn blks)|  | Encoder  |
-    +--------+           +--------------+  +----------+
-        |                         |            |
-        |                         v            |
-        |                 +--------------+     |
-        |                 | Perceiver    |     |
-        |                 | Resampler    |     |
-        |                 | (2 layers,   |     |
-        |                 |  32 latents) |     |
-        |                 +--------------+     |
-        |                         |            |
-        |               gpt_cond_latent   speaker_embedding
-        |                  (1024-dim)       (512-dim)
-        v                         |            |
-    +---------------------------------------------+
-    |            GPT-2 Transformer                 |
-    |  30 layers | 1024 hidden | 16 heads | ~350M |
-    |                                              |
-    |  Text tokens + conditioning --> audio codes  |
-    +---------------------------------------------+
-                        |
-                   Audio Codes
-                   (1026 codebook)
-                        |
-                        v
-    +---------------------------------------------+
-    |            HiFiGAN Vocoder (~10M)            |
-    |  Upsampling: [8, 8, 2, 2] = 256x            |
-    |  + Speaker conditioning at each layer        |
-    +---------------------------------------------+
-                        |
-                        v
-                  24kHz Waveform
-```
+![XTTS-v2 Architecture](docs/images/architecture_diagram.png)
+*Figure 2: XTTS-v2 architecture — text and reference audio are processed through separate pathways, combined in the GPT-2 transformer, and decoded to a 24kHz waveform.*
 
 ### Key Specifications
 
