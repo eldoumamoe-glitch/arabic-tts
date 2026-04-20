@@ -51,7 +51,7 @@ This project addresses each area systematically, with before/after comparisons a
 
 ## Where This Project Sits in AI
 
-![AI/ML/DL/Data Science Domains](docs/images/ai_ml_dl_domains.png)
+![AI/ML/DL/Data Science Domains](docs/images/ai_ml_dl_domains.gif)
 
 *Figure 1: The relationship between AI, Machine Learning, Deep Learning, and Data Science — and where each part of this project applies.*
 
@@ -557,35 +557,8 @@ We evaluated all publicly available Arabic speech datasets for suitability as XT
 
 #### Evaluation Summary
 
-```
-Best for our use case:
-┌─────────────────────────────────────────────────────────────────┐
-│  1. MAdel121/arabic-egy-cleaned (HuggingFace)                   │
-│     ✅ Largest free dataset (72h)                                │
-│     ✅ Already cleaned and normalized                            │
-│     ✅ Pre-split into train/validation/test                      │
-│     ✅ Easy to download via HuggingFace datasets library         │
-│     ⚠️  16kHz (not 22kHz) — auto-resampled but loses some       │
-│        high-frequency detail                                     │
-│     ⚠️  No speaker IDs — mixed voices in training                │
-│     ⚠️  ~85% male speakers                                       │
-│                                                                  │
-│  2. Mozilla Common Voice (Arabic)                                │
-│     ✅ Highest sample rate (48kHz)                                │
-│     ✅ Very large (~300h)                                         │
-│     ⚠️  Mixed MSA, not dialect-specific                          │
-│     ⚠️  Crowdsourced — inconsistent quality and accents          │
-│                                                                  │
-│  3. MGB-3 (via ARBML/klaam)                                      │
-│     ✅ Egyptian dialect, multi-annotated transcripts              │
-│     ⚠️  Registration required                                    │
-│     ⚠️  15h — smaller than option 1                               │
-│                                                                  │
-│  ❌ MagicHub (5.5h, 4 speakers, conversational) — too small      │
-│  ❌ OpenSLR Quranic — wrong domain (recitation, not speech)      │
-│  ❌ Kaggle Egyptian — insufficient documentation                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+![Dataset Evaluation](docs/images/dataset_evaluation.png)
+*Figure 4: Dataset evaluation results — green (chosen), yellow (viable alternatives), red (rejected).*
 
 ### 5.3 Chosen Approach
 
@@ -606,39 +579,8 @@ The source dataset has **103K clips with no speaker labels**. To fine-tune XTTS-
 
 #### Pipeline Overview
 
-```
-HuggingFace Dataset (103K clips, no speaker IDs)
-        │
-        ▼
-   ┌─────────────┐
-   │  1. Download │  16.5 GB from HuggingFace
-   └──────┬──────┘
-          ▼
-   ┌─────────────────────┐
-   │  2. Quality Filter   │  Keep only 2–11s duration, 10–200 char text
-   └──────┬──────────────┘
-          ▼
-   ┌──────────────────────────────┐
-   │  3. Speaker Embedding        │  ECAPA-TDNN (SpeechBrain)
-   │     Extraction               │  192-dim embedding per clip
-   └──────┬───────────────────────┘
-          ▼
-   ┌──────────────────────────────┐
-   │  4. Agglomerative Clustering │  Find groups of same-speaker clips
-   │     + Silhouette scoring     │  Optimal cluster count auto-selected
-   └──────┬───────────────────────┘
-          ▼
-   ┌──────────────────────────────┐
-   │  5. Best Cluster Selection   │  Highest internal cosine similarity
-   │                              │  among clusters with 500+ clips
-   └──────┬───────────────────────┘
-          ▼
-   ┌──────────────────────────────┐
-   │  6. Export to XTTS-v2 format │  Resample to 22,050 Hz
-   │                              │  Pipe-delimited CSV + WAV
-   │                              │  90/10 train/eval split
-   └──────────────────────────────┘
-```
+![Data Pipeline](docs/images/data_pipeline.png)
+*Figure 3: Data preparation pipeline — from raw HuggingFace dataset to XTTS-v2 training-ready format.*
 
 #### Step-by-Step Details
 
@@ -1210,54 +1152,8 @@ The training data used in this release comes from [MAdel121/arabic-egy-cleaned](
 
 To achieve production-quality Arabic TTS, we need purpose-built training data. The next phase will use a custom data collection pipeline:
 
-```
-YouTube (Arabic content creators)
-        │
-        ▼
-┌──────────────────────┐
-│  1. yt-dlp Download   │  Download audio from curated playlists
-│                       │  Target: single-speaker channels
-└──────┬───────────────┘
-        ▼
-┌──────────────────────┐
-│  2. Whisper           │  Transcribe with word-level timestamps
-│     Transcription     │  Model: large-v3, language: ar
-└──────┬───────────────┘
-        ▼
-┌──────────────────────┐
-│  3. Sentence          │  Split at Arabic punctuation + pause
-│     Segmentation      │  detection (min 2s, max 11s per clip)
-└──────┬───────────────┘
-        ▼
-┌──────────────────────┐
-│  4. Audio Cleaning    │  Denoise, normalize loudness,
-│                       │  filter by SNR, detect music/overlap
-└──────┬───────────────┘
-        ▼
-┌──────────────────────┐
-│  5. Text Cleaning     │  Hamza correction, Whisper error fixes,
-│                       │  dialect-specific normalization
-└──────┬───────────────┘
-        ▼
-┌──────────────────────────────────────────────┐
-│  6. Manual Review (CRITICAL)                  │
-│                                               │
-│  Automated pipelines catch ~95% of issues,    │
-│  but the remaining 5% — subtle misaligned     │
-│  text, speaker bleed, background voices,      │
-│  mispronunciations — can only be caught by    │
-│  a human ear. Manual review is the single     │
-│  most important step for TTS data quality.    │
-│                                               │
-│  Each clip must be listened to and verified:  │
-│  - Does the text match what is spoken?        │
-│  - Is it a single speaker throughout?         │
-│  - Is the audio clean (no music, no overlap)? │
-│  - Is the pronunciation natural?              │
-└──────┬───────────────────────────────────────┘
-        ▼
-   Training-ready data
-```
+![YouTube Data Collection Pipeline](docs/images/youtube_pipeline.png)
+*Figure 5: Future data collection pipeline — from YouTube to training-ready data. Step 6 (Manual Review) is the most critical step for TTS data quality.*
 
 > [!IMPORTANT]
 > **Manual cleaning is crucial.** No automated pipeline — no matter how sophisticated — can replace a human listener verifying that text matches audio. The difference between a good TTS model and a great one often comes down to the last 5% of data quality that only manual review can catch.
