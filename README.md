@@ -1400,6 +1400,6 @@ The Arabic-speaking world represents over **400 million native speakers** across
   title={Improving XTTS-v2 for Arabic Text-to-Speech},
   author={Moe Eldouma},
   year={2026},
-  url={https://github.com/TODO/arabic-tts-xtts-v2}
+  url={https://github.com/eldoumamoe-glitch/arabic-tts}
 }
 ```
