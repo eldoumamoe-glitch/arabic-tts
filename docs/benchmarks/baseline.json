@@ -1,0 +1,34 @@
+{
+  "total_duration_s": 19.33,
+  "total_generation_time_s": 6.36,
+  "speaker": "Gilberto Mathias",
+  "model": "XTTS-v2 base (unmodified)",
+  "preprocessing": "None",
+  "post_processing": "None",
+  "sentences": [
+    {
+      "index": 0,
+      "text": "أنا محمد عبدالله الدومة من السودان أحب البرمجة والابتكار",
+      "duration_s": 4.92,
+      "generation_time_s": 2.49
+    },
+    {
+      "index": 1,
+      "text": "وأعمل على تطوير نماذج ذكاء اصطناعي تساعد مجتمعي",
+      "duration_s": 5.39,
+      "generation_time_s": 1.63
+    },
+    {
+      "index": 2,
+      "text": "وأؤمن أن مشاركة المعرفة مهمة للتقدم",
+      "duration_s": 3.06,
+      "generation_time_s": 0.86
+    },
+    {
+      "index": 3,
+      "text": "وأدعوكم لدعمي لنَبني معًا مستقبلًا أفضل لأجيالنا القادمة",
+      "duration_s": 4.92,
+      "generation_time_s": 1.38
+    }
+  ]
+}

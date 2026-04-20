@@ -1,0 +1,33 @@
+# Model weights (too large for git, use Git LFS or host separately)
+models/base/model.pth
+models/base/speakers_xtts.pth
+models/finetuned/
+
+# Audio outputs (store samples only, not bulk)
+outputs/**/*.wav
+!outputs/original model/AIOriginal.wav
+
+# Data
+data/raw/
+data/clean/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment
+.env
+*.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
