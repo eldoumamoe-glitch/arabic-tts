@@ -1,15 +1,19 @@
-# Model weights (too large for git, use Git LFS or host separately)
+# Model weights (too large for GitHub — hosted on HuggingFace)
 models/base/model.pth
 models/base/speakers_xtts.pth
+models/base/hash.md5
+models/base/tos_agreed.txt
 models/finetuned/
 
-# Audio outputs (store samples only, not bulk)
-outputs/**/*.wav
-!outputs/original model/AIOriginal.wav
-
-# Data
+# Training data (too large for GitHub)
+data/egyptian/wavs/
+data/egyptian/rejected/
 data/raw/
 data/clean/
+
+# Audio outputs - include official samples, exclude bulk
+# Official samples are tracked explicitly via git add -f
+outputs/**/*.wav
 
 # Python
 __pycache__/
@@ -31,3 +35,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# HuggingFace cache
+.cache/

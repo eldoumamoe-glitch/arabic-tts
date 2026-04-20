@@ -1,0 +1,34 @@
+{
+  "date": "2026-04-20",
+  "files": {
+    "Phase 1: Baseline": "/home/moe/projects/New Arabic TTS/outputs/original model/Original_Model_test.wav",
+    "Phase 3+4: Improved": "/home/moe/projects/New Arabic TTS/outputs/improved model/Improved_Model_test.wav",
+    "Phase 6: Fine-tuned": "/home/moe/projects/New Arabic TTS/outputs/finetuned model/Finetuned_Model_test.wav"
+  },
+  "metrics": {
+    "Phase 1: Baseline": {
+      "duration_s": 19.33,
+      "rms": 0.136207,
+      "peak": 0.987061,
+      "snr_db": 76.1,
+      "silence_ratio": 0.268,
+      "speaking_duration_s": 15.86
+    },
+    "Phase 3+4: Improved": {
+      "duration_s": 18.99,
+      "rms": 0.128779,
+      "peak": 0.943756,
+      "snr_db": 61.0,
+      "silence_ratio": 0.288,
+      "speaking_duration_s": 15.35
+    },
+    "Phase 6: Fine-tuned": {
+      "duration_s": 16.76,
+      "rms": 0.118894,
+      "peak": 0.812195,
+      "snr_db": 43.0,
+      "silence_ratio": 0.226,
+      "speaking_duration_s": 14.71
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "source_dataset": "MAdel121/arabic-egy-cleaned",
+  "total_source_clips": 82881,
+  "valid_after_filtering": 53123,
+  "clustering": {
+    "method": "ECAPA-TDNN + Agglomerative (n=15) + centroid similarity ranking",
+    "embedding_model": "speechbrain/spkrec-ecapa-voxceleb",
+    "largest_cluster_id": 1,
+    "largest_cluster_size": 25116,
+    "top_n_selected": 5000,
+    "similarity_min": 0.7853,
+    "similarity_max": 0.8971,
+    "similarity_mean": 0.8139
+  },
+  "selected": {
+    "clips": 5000,
+    "total_hours": 5.08,
+    "mean_duration_s": 3.65
+  },
+  "speaker_name": "egyptian_male_01",
+  "export": {
+    "train_clips": 4500,
+    "eval_clips": 500,
+    "target_sample_rate": 22050,
+    "format": "XTTS-v2 (pipe-delimited CSV + WAV)"
+  },
+  "total_pipeline_time_min": 15.3
+}

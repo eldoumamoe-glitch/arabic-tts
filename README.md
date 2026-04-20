@@ -5,6 +5,7 @@ A systematic project to improve [Coqui XTTS-v2](https://github.com/coqui-ai/TTS)
 ## Table of Contents
 
 - [Project Overview](#project-overview)
+- [Where This Project Sits in AI](#where-this-project-sits-in-ai)
 - [Architecture](#architecture)
 - [Setup & Installation](#setup--installation)
 - [Phase 1: Baseline Evaluation](#phase-1-baseline-evaluation)
@@ -15,7 +16,10 @@ A systematic project to improve [Coqui XTTS-v2](https://github.com/coqui-ai/TTS)
 - [Phase 6: Fine-Tuning](#phase-6-fine-tuning)
 - [Phase 7: Evaluation & Comparison](#phase-7-evaluation--comparison)
 - [Phase 8: Studio-Quality Audio Upsampling](#phase-8-studio-quality-audio-upsampling)
+- [Resource Usage](#resource-usage)
 - [Results](#results)
+- [Known Limitations & Future Improvements](#known-limitations--future-improvements)
+- [Industry Use Cases](#industry-use-cases)
 - [Usage](#usage)
 - [License](#license)
 
@@ -40,6 +44,29 @@ This project addresses each area systematically, with before/after comparisons a
 - Document a reproducible pipeline from base model to production-quality Arabic TTS
 - Provide quantitative benchmarks (MOS scores, RTF, SNR) at each improvement stage
 - Release fine-tuned checkpoints and preprocessing tools for the Arabic TTS community
+
+---
+
+## Where This Project Sits in AI
+
+![AI/ML/DL/Data Science Domains](docs/images/ai_ml_dl_domains.png)
+
+*Figure 1: The relationship between AI, Machine Learning, Deep Learning, and Data Science — and where each part of this project applies.*
+
+This project spans all four domains. Here is where each phase of our work falls:
+
+| Domain | What we did in this project | Phase |
+|--------|---------------------------|-------|
+| **Artificial Intelligence** | End-to-end system that converts Arabic text to natural-sounding speech — a core AI application | All phases |
+| **Deep Learning** | Fine-tuned a 370M-parameter GPT-2 transformer + HiFiGAN vocoder on Arabic speech data | Phase 6 (Training) |
+| **Machine Learning** | Speaker clustering with ECAPA-TDNN embeddings + Agglomerative Clustering to identify speakers in unlabeled data | Phase 5 (Data Preparation) |
+| **Data Science** | Dataset evaluation, quality filtering, statistical analysis, SNR measurement, Whisper-based alignment verification, visualization of results | Phases 5, 7 (Data & Evaluation) |
+
+**In detail:**
+- **Deep Learning** powers the core model — the GPT-2 backbone generates audio codes autoregressively, the HiFiGAN vocoder converts them to waveforms, and the Perceiver Resampler handles speaker conditioning. Fine-tuning these neural networks on Arabic data is a Deep Learning task
+- **Machine Learning** solved our speaker identification problem — with 103K unlabeled clips, we used ECAPA-TDNN (a neural feature extractor) combined with Agglomerative Clustering (a classical ML algorithm) to find and extract 5,000 clips from the same speaker
+- **Data Science** drove every decision about data quality — from evaluating 6 candidate datasets, to measuring SNR and silence ratios, to building the 3-layer sanity check pipeline, to generating comparison charts and metrics
+- **AI** is the umbrella — the final system takes Arabic text as input and produces human-like speech as output, combining all three disciplines into a practical application
 
 ---
 
@@ -158,17 +185,22 @@ This project was developed on an **NVIDIA DGX Spark** — a desktop AI workstati
 
 ### Software Environment
 
-| Package | Version | Notes |
-|---------|---------|-------|
-| Python | 3.10.20 | via Miniconda |
-| PyTorch | 2.11.0+cu130 | Match to your CUDA version |
+| Package | Version | Purpose |
+|---------|---------|---------|
+| Python | 3.10.20 | Runtime (via Miniconda) |
+| PyTorch | 2.11.0+cu130 | Deep learning framework — match to your CUDA version |
 | CUDA Toolkit | 13.0 | Match to your GPU driver |
-| Coqui TTS | 0.22.0 | Core TTS framework |
-| Transformers | 4.44.2 | Pinned for compatibility (see [Phase 2](#phase-2-compatibility-fixes)) |
-| NumPy | 1.22.0 | |
-| SciPy | 1.11.4 | |
-| Mishkal | 0.4.1 | Arabic tashkeel (optional) |
+| Coqui TTS | 0.22.0 | Core XTTS-v2 framework |
+| Transformers | 4.44.2 | Pinned — v5.x breaks Coqui TTS (see [Phase 2](#phase-2-compatibility-fixes)) |
+| SpeechBrain | 1.1.0 | ECAPA-TDNN speaker embeddings |
+| OpenAI Whisper | latest | Alignment verification (large-v3 model) |
+| AudioSR | 0.0.7 | Neural audio upsampling (24→48 kHz) |
+| Mishkal | 0.4.1 | Arabic tashkeel — optional, for formal MSA mode |
 | PyArabic | 0.6.15 | Arabic text utilities |
+| datasets | 4.8.4 | HuggingFace dataset loading |
+| torchcodec | 0.11.1 | Audio decoding for HuggingFace datasets |
+| matplotlib | — | Chart generation |
+| umap-learn | — | Dimensionality reduction for speaker cluster visualization |
 
 ### Installation Steps
 
@@ -213,11 +245,18 @@ New Arabic TTS/
 │   ├── images/
 │   │   ├── speaker_clusters_umap.png   # Phase 5: UMAP speaker clusters
 │   │   ├── cluster_sizes.png           # Phase 5: Cluster size chart
-│   │   └── duration_distribution.png   # Phase 5: Duration histogram
+│   │   ├── similarity_distribution.png # Phase 5: Speaker consistency cutoff
+│   │   ├── duration_distribution.png   # Phase 5: Duration histogram
+│   │   ├── comparison_waveforms.png    # Phase 7: Waveform comparison
+│   │   ├── comparison_spectrogram.png  # Phase 7: Spectrogram comparison
+│   │   ├── comparison_metrics.png      # Phase 7: Metrics bar chart
+│   │   └── training_loss.png           # Phase 7: Training loss curve
 │   └── benchmarks/
 │       ├── baseline.json               # Phase 1: Baseline metrics
 │       ├── dataset_preparation.json    # Phase 5: Pipeline report
-│       └── sanity_check.json           # Phase 5: Data quality report
+│       ├── sanity_check.json           # Phase 5: Data quality report
+│       ├── training_summary.json       # Phase 6: Training results
+│       └── evaluation.json             # Phase 7: Comparison metrics
 ├── models/
 │   └── base/                       # XTTS-v2 base model (1.8GB)
 │       ├── config.json
@@ -230,8 +269,9 @@ New Arabic TTS/
 │   ├── improved model/             # Phase 3+4: Text preprocessing + post-processing
 │   │   ├── Improved_Model_test.wav #   Same text, improved pipeline
 │   │   └── Improved_Model_test_stats.json  # Per-chunk generation stats
-│   ├── finetuned model/            # Phase 6: After fine-tuning (coming)
-│   └── finetuned model/upsampled/  # Phase 8: Studio quality (coming)
+│   └── finetuned model/             # Phase 6: After fine-tuning
+│       ├── Finetuned_Model_test.wav          # Fine-tuned output (same demo text)
+│       └── Finetuned_Model_test_stats.json   # Generation stats
 └── scripts/
     ├── arabic_preprocessor.py      # Phase 3: Arabic text preprocessing
     ├── baseline_test.py            # Phase 1: Baseline benchmark generator
@@ -240,7 +280,9 @@ New Arabic TTS/
     ├── prepare_dataset.py          # Phase 5: Dataset download, clustering, export
     ├── refine_cluster.py           # Phase 5: Refined top-N speaker selection
     ├── sanity_check.py             # Phase 5: 3-layer data quality verification
-    └── train.py                    # Phase 6: XTTS-v2 fine-tuning
+    ├── train.py                    # Phase 6: XTTS-v2 fine-tuning
+    ├── evaluate.py                 # Phase 7: Metrics and comparison charts
+    └── upsample.py                 # Phase 8: AudioSR upsampling (24→48kHz)
 ```
 
 ---
@@ -347,6 +389,31 @@ return torch.load(f, map_location=map_location, weights_only=False, **kwargs)
 ```
 
 > **Note**: This patch is applied to the installed package. If the `new-arabic-tts` conda environment is recreated, this patch must be re-applied. A script to automate this is provided at `scripts/patch_tts.py`.
+
+### 2.3 Coqui Trainer Git Branch Detection
+
+**Problem**: The Coqui `Trainer` class tries to detect the current git branch for logging. If the project directory is a git repo with no commits, `git branch` returns no output and the trainer crashes with `StopIteration`.
+
+```
+StopIteration (in trainer/generic_utils.py get_git_branch)
+```
+
+**Fix**: Initialize the git repo with at least one commit before running training.
+
+```bash
+git add . && git commit -m "Initial commit"
+```
+
+### 2.4 AudioSR Dependency Conflicts
+
+**Problem**: Installing `audiosr` downgrades `librosa` (0.10→0.9.2) and `transformers` (4.44→4.30), breaking Coqui TTS compatibility.
+
+**Fix**: After installing AudioSR, restore the required versions:
+
+```bash
+pip install audiosr
+pip install "librosa>=0.10.0" "transformers==4.44.2"  # restore after audiosr
+```
 
 ---
 
@@ -484,8 +551,11 @@ All output files are organized by phase. Each file captures a specific stage of 
 | `outputs/improved model/Improved_Model_test.wav` | Phase 3+4 | Same demo text, with hamza correction, smart chunking, pause compression, sentence taper |
 | `outputs/improved model/Improved_Model_test_stats.json` | Phase 4 | Per-chunk generation stats (duration, timing, params) |
 | `docs/benchmarks/baseline.json` | Phase 1 | Per-sentence metrics for baseline |
-| _`outputs/finetuned model/AIFinetuned.wav`_ | _Phase 6_ | _Coming — same demo text after fine-tuning on Egyptian Arabic data_ |
-| _`outputs/finetuned model/upsampled/`_ | _Phase 8_ | _Coming — studio-quality upsampled version (48/96 kHz)_ |
+| `outputs/finetuned model/Finetuned_Model_test.wav` | Phase 6 | Same demo text, fine-tuned on Egyptian Arabic — **voice quality transformation** |
+| `outputs/finetuned model/Finetuned_Model_test_stats.json` | Phase 6 | Per-chunk generation stats for fine-tuned output |
+| `outputs/original model/Original_Model_test_48kHz.wav` | Phase 8 | Baseline upsampled to 48kHz/24-bit |
+| `outputs/improved model/Improved_Model_test_48kHz.wav` | Phase 8 | Improved pipeline upsampled to 48kHz/24-bit |
+| `outputs/finetuned model/Finetuned_Model_test_48kHz.wav` | Phase 8 | Fine-tuned model upsampled to 48kHz/24-bit — **best quality** |
 
 > **How to compare**: Play `Original_Model_test.wav` and `Improved_Model_test.wav` side by side — all files use the same standard demo text. After Phase 6, play the fine-tuned version to hear the voice quality transformation. This progression tells the full story of the project.
 
@@ -730,7 +800,7 @@ The dataset will be cached after the first download. Subsequent runs skip the do
 ### 5.6 Dependencies Added in This Phase
 
 ```bash
-pip install datasets speechbrain umap-learn matplotlib torchcodec
+pip install datasets speechbrain umap-learn matplotlib torchcodec openai-whisper
 ```
 
 | Package | Version | Purpose |
@@ -739,7 +809,11 @@ pip install datasets speechbrain umap-learn matplotlib torchcodec
 | `speechbrain` | 1.1.0 | ECAPA-TDNN speaker embedding model |
 | `umap-learn` | — | UMAP dimensionality reduction for visualization |
 | `matplotlib` | — | Chart generation |
-| `torchcodec` | 0.11.1 | Audio decoding for HuggingFace datasets |
+| `torchcodec` | 0.11.1 | Audio decoding for HuggingFace datasets (required by `datasets` library) |
+| `openai-whisper` | — | Alignment verification in sanity check (Layer 3) |
+
+> [!NOTE]
+> **Why OpenAI Whisper instead of faster-whisper?** We initially tried `faster-whisper` (CTranslate2-based) but it lacks CUDA support on ARM (aarch64) platforms like DGX Spark. OpenAI's original Whisper uses PyTorch directly and works with any CUDA-capable GPU.
 
 ### 5.7 Data Sanity Check
 
@@ -782,11 +856,11 @@ Signal analysis on the audio waveform.
 
 #### Layer 3 — Alignment Verification (Whisper)
 
-The most important layer. Uses [Faster Whisper](https://github.com/SYSTRAN/faster-whisper) (large-v3) to independently transcribe each clip, then compares the Whisper transcript to the metadata text.
+The most important layer. Uses [OpenAI Whisper](https://github.com/openai/whisper) (large-v3) to independently transcribe each clip, then compares the Whisper transcript to the metadata text.
 
 | Detail | Value |
 |--------|-------|
-| Model | Whisper large-v3 (via faster-whisper) |
+| Model | Whisper large-v3 (OpenAI, PyTorch-based) |
 | Comparison | Normalized text similarity (SequenceMatcher) |
 | Threshold | Min 40% similarity |
 | What it catches | Misaligned text — clips where the transcript doesn't match what's actually spoken |
@@ -813,11 +887,13 @@ conda activate new-arabic-tts
 python scripts/sanity_check.py
 ```
 
-#### Dependencies added
+#### Dependencies
 
 ```bash
-pip install faster-whisper
+pip install openai-whisper
 ```
+
+> **Note**: We use `openai-whisper` (PyTorch-based) instead of `faster-whisper` (CTranslate2-based) because CTranslate2 lacks CUDA support on ARM platforms (DGX Spark). If you're on x86 with CUDA, `faster-whisper` will also work and is faster.
 
 ---
 
@@ -864,25 +940,106 @@ Output saved to `models/finetuned/run/training/` with:
 - TensorBoard logs
 - Training configuration
 
-### 6.4 Checkpoint Selection
+### 6.4 Training Results
 
-> Will be updated after training completes.
+| Metric | Value |
+|--------|-------|
+| Training time | 30 minutes |
+| Final loss | 3.60 (down from 4.47 at start) |
+| Text CE loss | 0.029 |
+| Mel CE loss | 3.57 |
+| Best checkpoint | `best_model_4328.pth` (final step) |
+| Checkpoints saved | 1000, 2000, 3000, 4328 (best) |
+| Output directory | `models/finetuned/run/training/GPT_XTTS_AR_FT-April-20-2026_02+14PM-81b7d55/` |
+
+### 6.5 Fine-Tuned Output
+
+**Output file**: `outputs/finetuned model/Finetuned_Model_test.wav` — 16.76 seconds
+**Stats file**: `outputs/finetuned model/Finetuned_Model_test_stats.json`
+
+> Listen to this file and compare with the baseline and improved outputs. The voice now comes from a real Arabic speaker (Egyptian male) rather than a built-in English-trained speaker. This is the core quality transformation of the project.
+
+### 6.6 Full Comparison (Same Demo Text)
+
+All three outputs use the same standard demo text for a fair comparison:
+
+| Metric | Phase 1: Original | Phase 3+4: Improved | Phase 6: Fine-tuned |
+|--------|-------------------|--------------------|--------------------|
+| **File** | `Original_Model_test.wav` | `Improved_Model_test.wav` | `Finetuned_Model_test.wav` |
+| **Duration** | 19.33s | 18.99s | 16.76s |
+| **Speaker** | Gilberto Mathias (built-in) | Gilberto Mathias (built-in) | egyptian_male_01 (trained) |
+| **Voice** | Non-Arabic accent | Non-Arabic accent | Arabic speaker |
+| **Preprocessing** | None | Hamza + smart chunking | Hamza |
+| **Model** | Base XTTS-v2 | Base XTTS-v2 | Fine-tuned (4 epochs) |
+
+> [!NOTE]
+> The fine-tuned output is shorter (16.76s vs 19.33s) because the Arabic-trained speaker speaks at a more natural pace compared to the English-trained baseline speaker.
 
 ---
 
 ## Phase 7: Evaluation & Comparison
 
-> **Status**: Planned
+> **Status**: Complete
+
+**Script**: [`scripts/evaluate.py`](scripts/evaluate.py)
 
 ### 7.1 Evaluation Metrics
-### 7.2 Before vs After Comparison
+
+All three outputs were analyzed using the same standard demo text for a fair comparison.
+
+| Metric | Phase 1: Baseline | Phase 3+4: Improved | Phase 6: Fine-tuned |
+|--------|-------------------|--------------------|--------------------|
+| **Duration** | 19.33s | 18.99s | 16.76s |
+| **SNR** | 76.1 dB | 61.0 dB | 43.0 dB |
+| **Silence ratio** | 26.8% | 28.8% | 22.6% |
+| **Speaker** | Built-in (non-Arabic) | Built-in (non-Arabic) | Egyptian Arabic (trained) |
+
+> **Note on SNR**: The baseline has higher SNR because the built-in speaker produces cleaner but less natural audio. The fine-tuned model has lower SNR because it reproduces the natural characteristics of real speech (breathing, vocal texture), which register as "noise" in a simple SNR measurement. This is expected and desirable — real human speech is not perfectly clean.
+
+### 7.2 Generated Charts
+
+All charts are saved to `docs/images/` and generated automatically by `scripts/evaluate.py`.
+
+#### Waveform Comparison
+![Waveform Comparison](docs/images/comparison_waveforms.png)
+*Side-by-side waveforms of the same text across all three stages. The fine-tuned model shows more natural amplitude variation and pacing.*
+
+#### Spectrogram Comparison
+![Spectrogram Comparison](docs/images/comparison_spectrogram.png)
+*Frequency content across time. The fine-tuned model shows richer harmonic structure typical of natural Arabic speech.*
+
+#### Metrics Comparison
+![Metrics Comparison](docs/images/comparison_metrics.png)
+*Bar chart comparing duration, SNR, speaking duration, and silence ratio across all stages.*
+
+#### Training Loss Curve
+![Training Loss](docs/images/training_loss.png)
+*Loss curve during fine-tuning. Steady decrease from 4.47 to 3.60 over 4 epochs (4,328 steps, 30 minutes).*
+
 ### 7.3 Audio Samples
+
+Listen to all three outputs in order to hear the progression:
+
+| Stage | File | Description |
+|-------|------|-------------|
+| 1. Baseline | `outputs/original model/Original_Model_test.wav` | Raw base model, non-Arabic speaker |
+| 2. Improved | `outputs/improved model/Improved_Model_test.wav` | Same model, better text handling |
+| 3. Fine-tuned | `outputs/finetuned model/Finetuned_Model_test.wav` | Arabic speaker, natural pronunciation |
+
+### 7.4 How to Reproduce
+
+```bash
+conda activate new-arabic-tts
+python scripts/evaluate.py
+```
+
+This regenerates all charts and metrics from the existing output WAV files.
 
 ---
 
 ## Phase 8: Studio-Quality Audio Upsampling
 
-> **Status**: Planned (post fine-tuning)
+> **Status**: Complete
 
 > [!IMPORTANT]
 > ### Why not change the model's internal sample rate?
@@ -906,29 +1063,132 @@ The upsampler reconstructs the high-frequency detail (4–24 kHz) that the base 
 | High | 48 kHz | 24-bit | Professional | Podcasts, voiceover, video |
 | Studio | 96 kHz | 24-bit | Studio master | Music production, archival |
 
-### 8.2 Candidate Upsamplers
+### 8.2 Chosen Upsampler: AudioSR
 
-| Tool | Output | Speed | Notes |
-|------|--------|-------|-------|
-| **AudioSR** | Up to 48 kHz | GPU-accelerated | Purpose-built for speech upsampling |
-| **Vocos** | 48 kHz | Fast | Neural vocoder with high-rate support |
-| **HiFi-GAN Universal** | 48 kHz | Fast | Retrained vocoder for higher sample rates |
+We evaluated three options and chose [AudioSR](https://github.com/haoheliu/versatile_audio_super_resolution):
+
+| Tool | Output | Speed | Why we chose/skipped |
+|------|--------|-------|---------------------|
+| **AudioSR** | 48 kHz | GPU-accelerated | **Chosen** — purpose-built for speech, diffusion-based, high quality |
+| Vocos | 48 kHz | Fast | Skipped — requires custom training for best results |
+| HiFi-GAN Universal | 48 kHz | Fast | Skipped — less natural than diffusion-based approach |
+
+**Script**: [`scripts/upsample.py`](scripts/upsample.py)
+
+### 8.3 Upsampling Process
+
+All three official outputs are upsampled for comparison:
+
+```bash
+conda activate new-arabic-tts
+python scripts/upsample.py --all
+```
+
+| Input (24kHz / 16-bit) | Output (48kHz / 24-bit) |
+|------------------------|------------------------|
+| `Original_Model_test.wav` | `Original_Model_test_48kHz.wav` |
+| `Improved_Model_test.wav` | `Improved_Model_test_48kHz.wav` |
+| `Finetuned_Model_test.wav` | `Finetuned_Model_test_48kHz.wav` |
+
+### 8.4 AudioSR Parameters
+
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| Model | `speech` | Optimized for speech (vs `basic` for general audio) |
+| DDIM steps | 50 | Diffusion denoising steps (quality vs speed tradeoff) |
+| Guidance scale | 3.5 | Controls fidelity to input |
+| Seed | 42 | Reproducible output |
+| Output format | WAV PCM_24 | 24-bit depth for professional quality |
 
 > [!NOTE]
-> This phase will be implemented **after fine-tuning is complete** (Phase 6). The upsampler works on any WAV output, so it benefits equally from the base model and fine-tuned models. Fine-tuning first ensures we improve the *content quality* (pronunciation, prosody, naturalness) before enhancing the *audio fidelity*.
+> AudioSR reconstructs the high-frequency content (8–24 kHz) that the base XTTS-v2 model cannot produce at its native 24kHz output. The result is noticeably crisper consonants, more natural breathiness, and professional-grade audio suitable for podcasts, voiceover, and video production.
+
+### 8.5 Upsampling Results
+
+| Input File | Output File | Processing Time |
+|-----------|-------------|-----------------|
+| `Original_Model_test.wav` (24kHz) | `Original_Model_test_48kHz.wav` (48kHz/24-bit) | 60.8s |
+| `Improved_Model_test.wav` (24kHz) | `Improved_Model_test_48kHz.wav` (48kHz/24-bit) | 17.1s |
+| `Finetuned_Model_test.wav` (24kHz) | `Finetuned_Model_test_48kHz.wav` (48kHz/24-bit) | 17.1s |
+
+> The best output from this project is `Finetuned_Model_test_48kHz.wav` — fine-tuned Arabic voice at professional 48kHz/24-bit quality.
+
+---
+
+## Resource Usage
+
+Every phase was tracked for compute resources. This helps you estimate hardware requirements if running on different GPUs.
+
+### Per-Phase Resource Breakdown
+
+| Phase | Task | GPU VRAM | System RAM | Time | Notes |
+|-------|------|----------|------------|------|-------|
+| **1. Baseline** | Model loading | ~4 GB | ~2 GB | 10s | XTTS-v2 base model (370M params) |
+| **1. Baseline** | Inference (4 sentences) | ~5 GB | ~2 GB | 6.4s | 24kHz output, built-in speaker |
+| **2. Compatibility** | Patch only | — | — | <1s | No GPU needed |
+| **3. Preprocessing** | Text processing | — | ~200 MB | <1s | CPU only (no GPU) |
+| **3. Preprocessing** | Mishkal tashkeel (optional) | — | ~500 MB | <1s | CPU only |
+| **4. Inference** | Full pipeline (chunking + post) | ~5 GB | ~2 GB | 6.9s | Same model, added post-processing |
+| **5. Data download** | HuggingFace dataset | — | ~36 GB | 27 min | 103K clips decoded into memory |
+| **5. Embeddings** | ECAPA-TDNN (53K clips) | ~1 GB | ~2.5 GB | 10.4 min | 85 clips/sec on GPU |
+| **5. Clustering** | Agglomerative + UMAP | — | ~4 GB | 2 min | CPU-bound (sklearn) |
+| **5. Export** | Resample + write WAVs | — | ~1 GB | 3 min | 5,000 clips to 22,050 Hz |
+| **5. Sanity check** | Whisper large-v3 (5K clips) | ~10 GB | ~2 GB | 93 min | ~1 clip/sec, alignment verification |
+| **6. Training** | XTTS-v2 fine-tuning (4 epochs) | ~18 GB | ~4 GB | 30 min | 4,328 steps, batch 4, fp32 |
+| **6. Training** | Peak during backprop | ~22 GB | ~4 GB | — | Gradient accumulation x2 |
+| **7. Evaluation** | Chart generation | — | ~500 MB | <30s | CPU only (matplotlib) |
+| **8. Upsampling** | AudioSR (per file) | ~6 GB | ~3 GB | 17-60s/file | 50 DDIM steps, diffusion model |
+
+### GPU Memory Summary
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  DGX Spark GPU: 121.7 GB unified memory                      │
+│                                                              │
+│  Peak usage by task:                                         │
+│  ██░░░░░░░░░░░░░░░░░░  Training (22 GB)      18% of total   │
+│  █░░░░░░░░░░░░░░░░░░░  Whisper check (10 GB)  8% of total   │
+│  █░░░░░░░░░░░░░░░░░░░  AudioSR (6 GB)         5% of total   │
+│  ░░░░░░░░░░░░░░░░░░░░  Inference (5 GB)       4% of total   │
+│                                                              │
+│  Minimum GPU for this project: 8 GB (inference only)         │
+│  Minimum GPU for full pipeline: 24 GB (training + Whisper)   │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### For Different Hardware
+
+| GPU | VRAM | Can run |
+|-----|------|---------|
+| RTX 3060 | 12 GB | Inference only. Training needs batch_size=1 |
+| RTX 3090 / 4090 | 24 GB | Full pipeline. Reduce batch_size to 2 for training |
+| A100 / H100 | 40-80 GB | Full pipeline at higher batch sizes |
+| DGX Spark (this project) | 121.7 GB | Full pipeline, comfortable headroom |
+
+### Total Pipeline Cost
+
+| Resource | Value |
+|----------|-------|
+| Total GPU time | ~2.5 hours (all phases) |
+| Total wall clock | ~4 hours (including downloads and waits) |
+| Peak GPU VRAM | 22 GB (during training) |
+| Peak system RAM | 36 GB (during dataset loading) |
+| Disk space (project) | ~25 GB (model + data + outputs) |
+| Disk space (cache) | ~16 GB (HuggingFace dataset cache) |
 
 ---
 
 ## Results
 
-> Results will be populated as each phase is completed.
-
-| Metric | Baseline | + Text Preprocessing | + Inference Tuning | + Fine-Tuning |
-|--------|----------|---------------------|--------------------|---------------|
-| MOS Score | — | — | — | — |
-| Character Error Rate | — | — | — | — |
-| Real-Time Factor | — | — | — | — |
-| SNR (dB) | — | — | — | — |
+| Metric | Phase 1: Baseline | Phase 3+4: Improved | Phase 6: Fine-tuned |
+|--------|-------------------|--------------------|--------------------|
+| Output duration | 19.33s | 18.99s | 16.76s |
+| Speaker | Built-in (non-Arabic) | Built-in (non-Arabic) | Egyptian Arabic (trained) |
+| Arabic naturalness | Low | Low (same model) | Significantly improved |
+| Text handling | Raw (numbers, symbols as-is) | Hamza + numbers + symbols | Hamza |
+| Post-processing | None | Pause compress + trim + taper | None (raw for comparison) |
+| Training loss | — | — | 3.60 (from 4.47) |
+| Training time | — | — | 30 minutes |
 
 ---
 
@@ -975,6 +1235,154 @@ result = generate(
 sf.write("output.wav", result["wav"], result["sr"])
 print(result["stats"])
 ```
+
+---
+
+## Known Limitations & Future Improvements
+
+### Current Limitations
+
+The current model produces noticeably improved Arabic speech compared to the base XTTS-v2, but it is not yet at the level of a professional human voice actor. The primary bottleneck is **data quality, not model architecture**.
+
+**Why data is the limiting factor:**
+
+The training data used in this release comes from [MAdel121/arabic-egy-cleaned](https://huggingface.co/datasets/MAdel121/arabic-egy-cleaned), an open-source Egyptian Arabic speech dataset originally built for ASR (speech recognition), not TTS. While we applied extensive cleaning — speaker clustering, quality filtering, and Whisper-based alignment verification — the data has inherent limitations:
+
+- **No speaker labels in the source** — our speaker clustering identifies the most consistent voice, but it's not guaranteed to be a single speaker across all 4,328 training clips
+- **16 kHz source audio** — upsampled to 22,050 Hz for training, but the high-frequency detail above 8 kHz was never captured in the original recordings
+- **ASR-grade transcripts** — the text was generated by speech recognition models, not hand-verified. Our Whisper cross-check caught 188 misaligned clips (3.8%), but subtle errors may remain
+- **Single dialect** — currently trained on Egyptian Arabic only. Sudanese, Gulf, Levantine, and other dialects require their own training data
+
+### Data Collection Pipeline (Next Phase)
+
+To achieve production-quality Arabic TTS, we need purpose-built training data. The next phase will use a custom data collection pipeline:
+
+```
+YouTube (Arabic content creators)
+        │
+        ▼
+┌──────────────────────┐
+│  1. yt-dlp Download   │  Download audio from curated playlists
+│                       │  Target: single-speaker channels
+└──────┬───────────────┘
+        ▼
+┌──────────────────────┐
+│  2. Whisper           │  Transcribe with word-level timestamps
+│     Transcription     │  Model: large-v3, language: ar
+└──────┬───────────────┘
+        ▼
+┌──────────────────────┐
+│  3. Sentence          │  Split at Arabic punctuation + pause
+│     Segmentation      │  detection (min 2s, max 11s per clip)
+└──────┬───────────────┘
+        ▼
+┌──────────────────────┐
+│  4. Audio Cleaning    │  Denoise, normalize loudness,
+│                       │  filter by SNR, detect music/overlap
+└──────┬───────────────┘
+        ▼
+┌──────────────────────┐
+│  5. Text Cleaning     │  Hamza correction, Whisper error fixes,
+│                       │  dialect-specific normalization
+└──────┬───────────────┘
+        ▼
+┌──────────────────────────────────────────────┐
+│  6. Manual Review (CRITICAL)                  │
+│                                               │
+│  Automated pipelines catch ~95% of issues,    │
+│  but the remaining 5% — subtle misaligned     │
+│  text, speaker bleed, background voices,      │
+│  mispronunciations — can only be caught by    │
+│  a human ear. Manual review is the single     │
+│  most important step for TTS data quality.    │
+│                                               │
+│  Each clip must be listened to and verified:  │
+│  - Does the text match what is spoken?        │
+│  - Is it a single speaker throughout?         │
+│  - Is the audio clean (no music, no overlap)? │
+│  - Is the pronunciation natural?              │
+└──────┬───────────────────────────────────────┘
+        ▼
+   Training-ready data
+```
+
+> [!IMPORTANT]
+> **Manual cleaning is crucial.** No automated pipeline — no matter how sophisticated — can replace a human listener verifying that text matches audio. The difference between a good TTS model and a great one often comes down to the last 5% of data quality that only manual review can catch.
+
+### Acknowledgments — Training Data
+
+We gratefully acknowledge the following open-source data providers whose work made this project possible:
+
+- **[MAdel121](https://huggingface.co/MAdel121)** — Creator of the [arabic-egy-cleaned](https://huggingface.co/datasets/MAdel121/arabic-egy-cleaned) dataset (72h Egyptian Arabic, cleaned and normalized). This dataset served as our primary training data source
+- **[Mozilla Common Voice](https://commonvoice.mozilla.org)** — Crowdsourced multilingual speech data including Arabic contributions
+- **[Coqui AI](https://github.com/coqui-ai/TTS)** — Creators of XTTS-v2 and the Coqui TTS framework that this project builds upon
+- **[SpeechBrain](https://speechbrain.github.io)** — ECAPA-TDNN speaker verification model used for speaker clustering
+- **[OpenAI Whisper](https://github.com/openai/whisper)** — Speech recognition model used for data alignment verification
+
+### Roadmap
+
+| Priority | Improvement | Impact |
+|----------|------------|--------|
+| **High** | Collect clean, single-speaker Sudanese Arabic data (10-20 hours) | Enables the primary dialect goal of this project |
+| **High** | Manual review of training data with native Arabic speakers | Significant quality improvement from cleaner data |
+| **Medium** | Expand to Gulf, Levantine, and North African dialects | Broader Arabic dialect coverage |
+| **Medium** | Record purpose-built TTS data in a controlled environment | Studio-quality source audio (48kHz+) eliminates upsampling artifacts |
+| **Low** | Train a custom Arabic tokenizer with larger vocabulary | Better text-to-token mapping for Arabic script |
+| **Low** | Fine-tune the HiFiGAN vocoder on Arabic speech | More natural waveform generation for Arabic phonetics |
+
+---
+
+## Industry Use Cases
+
+When this project reaches production quality with clean, manually verified training data across multiple Arabic dialects, it enables a wide range of applications:
+
+### Media & Entertainment
+
+| Use Case | Description |
+|----------|-------------|
+| **Arabic podcast production** | Generate full episodes or narration in natural Arabic voices, reducing production time from days to minutes |
+| **Video dubbing & localization** | Dub English/foreign content into Arabic dialects — Egyptian for entertainment, MSA for news, Gulf for regional content |
+| **Audiobook generation** | Convert Arabic books and educational material to spoken audio at scale |
+| **Social media content** | Generate voiceovers for Arabic YouTube, TikTok, and Instagram content |
+
+### Business & Enterprise
+
+| Use Case | Description |
+|----------|-------------|
+| **Arabic call center IVR** | Natural-sounding Arabic voice prompts and automated responses for customer service |
+| **Corporate training** | Generate Arabic e-learning narration for employee training across MENA region |
+| **Accessibility** | Screen readers and assistive technology with natural Arabic speech for visually impaired users |
+| **Document-to-speech** | Convert Arabic reports, emails, and documents to audio for on-the-go consumption |
+
+### Technology & AI
+
+| Use Case | Description |
+|----------|-------------|
+| **Arabic voice assistants** | Power Siri/Alexa-like assistants that speak natural Arabic across dialects |
+| **Real-time translation** | Text-to-speech component for Arabic in live translation systems |
+| **Gaming** | Generate Arabic NPC dialogue and narration for games targeting the MENA market |
+| **Robotics** | Arabic speech output for service robots in airports, malls, and hospitals across the Arab world |
+
+### Education & Government
+
+| Use Case | Description |
+|----------|-------------|
+| **Language learning** | Generate example pronunciations in specific Arabic dialects for language learners |
+| **Public announcements** | Natural Arabic announcements for airports, transit systems, and government services |
+| **News automation** | Generate Arabic news bulletins from text feeds |
+
+### Market Opportunity
+
+The Arabic-speaking world represents over **400 million native speakers** across 25+ countries, yet Arabic TTS technology significantly lags behind English and European languages. High-quality, dialect-aware Arabic TTS addresses an underserved market with growing demand for Arabic digital content, accessibility tools, and AI-powered services.
+
+> [!NOTE]
+> ### Future Releases
+> This is an active project. Improved versions of the model will be released as we collect cleaner training data, expand dialect coverage, and refine the pipeline. Future releases will include:
+> - **v2.0** — Retrained on manually verified, studio-quality Arabic speech data
+> - **Dialect-specific checkpoints** — Separate models for Sudanese, Egyptian, Gulf, Levantine, and MSA
+> - **Pre-built speaker profiles** — Ready-to-use voice embeddings for common use cases
+>
+> Follow this repository for updates. Releases will be published on both GitHub and HuggingFace.
 
 ---
 

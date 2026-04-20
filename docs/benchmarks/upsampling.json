@@ -1,0 +1,32 @@
+{
+  "date": "2026-04-20",
+  "results": [
+    {
+      "input": "/home/moe/projects/New Arabic TTS/outputs/original model/Original_Model_test.wav",
+      "output": "/home/moe/projects/New Arabic TTS/outputs/original model/Original_Model_test_48kHz.wav",
+      "input_sr": 24000,
+      "output_sr": 48000,
+      "bit_depth": 24,
+      "duration_s": 20.48,
+      "processing_time_s": 60.8
+    },
+    {
+      "input": "/home/moe/projects/New Arabic TTS/outputs/improved model/Improved_Model_test.wav",
+      "output": "/home/moe/projects/New Arabic TTS/outputs/improved model/Improved_Model_test_48kHz.wav",
+      "input_sr": 24000,
+      "output_sr": 48000,
+      "bit_depth": 24,
+      "duration_s": 20.48,
+      "processing_time_s": 17.1
+    },
+    {
+      "input": "/home/moe/projects/New Arabic TTS/outputs/finetuned model/Finetuned_Model_test.wav",
+      "output": "/home/moe/projects/New Arabic TTS/outputs/finetuned model/Finetuned_Model_test_48kHz.wav",
+      "input_sr": 24000,
+      "output_sr": 48000,
+      "bit_depth": 24,
+      "duration_s": 20.48,
+      "processing_time_s": 17.1
+    }
+  ]
+}

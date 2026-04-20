@@ -1,0 +1,29 @@
+{
+  "chunks": [
+    {
+      "index": 0,
+      "text": "أنا محمد عبدالله الدومة من السودان أحب البرمجة والابتكار وأعمل على تطوير نماذج ذكاء اصطناعي تساعد مجتمعي وأؤمن أن مشاركة المعرفة مهمة للتقدم وأدعوكم لدعمي",
+      "chars": 154,
+      "duration_s": 14.18,
+      "generation_time_s": 5.61
+    },
+    {
+      "index": 1,
+      "text": "لنَبني معًا مستقبلًا أفضل لأجيالنا القادمة",
+      "chars": 42,
+      "duration_s": 3.76,
+      "generation_time_s": 1.25
+    }
+  ],
+  "total_generation_time": 6.86,
+  "total_duration_s": 18.99,
+  "rtf": 0.361,
+  "num_chunks": 2,
+  "params": {
+    "temperature": 0.3,
+    "top_p": 0.7,
+    "repetition_penalty": 10.0,
+    "sentence_pause": 0.35,
+    "seed": 12345
+  }
+}

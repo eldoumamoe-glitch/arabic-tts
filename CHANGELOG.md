@@ -3,6 +3,42 @@
 All notable changes to this project are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.7.0] - 2026-04-20
+
+### Added
+- **Audio upsampling** (`scripts/upsample.py`)
+  - AudioSR neural upsampler: 24kHz/16-bit → 48kHz/24-bit
+  - Diffusion-based (50 DDIM steps, speech model)
+  - All three outputs upsampled for comparison
+  - Report saved to `docs/benchmarks/upsampling.json`
+- **Dependencies**: Added `audiosr`
+
+## [0.6.0] - 2026-04-20
+
+### Added
+- **Evaluation pipeline** (`scripts/evaluate.py`)
+  - Generates 4 comparison charts across all three model stages
+  - `comparison_waveforms.png` — side-by-side waveforms
+  - `comparison_spectrogram.png` — frequency analysis
+  - `comparison_metrics.png` — duration, SNR, silence ratio bar charts
+  - `training_loss.png` — loss curve during fine-tuning
+  - Audio metrics: duration, SNR, silence ratio, speaking duration
+  - Full report saved to `docs/benchmarks/evaluation.json`
+
+## [0.5.0] - 2026-04-20
+
+### Added
+- **Fine-tuning pipeline** (`scripts/train.py`)
+  - XTTS-v2 GPT fine-tuned on 4,328 Egyptian Arabic clips (4.9 hours)
+  - 4 epochs, batch 4, grad accum 2, lr 5e-6, fp32
+  - Training completed in 30 minutes on DGX Spark
+  - Final loss: 3.60 (down from 4.47)
+  - Best checkpoint: `best_model_4328.pth`
+- **Fine-tuned output**: `outputs/finetuned model/Finetuned_Model_test.wav` (16.76s)
+  - Same standard demo text as baseline for direct comparison
+  - Voice now from real Arabic speaker (egyptian_male_01)
+- **Training summary**: `docs/benchmarks/training_summary.json`
+
 ## [0.4.0] - 2026-04-20
 
 ### Added
