@@ -7,8 +7,8 @@
       "input_sr": 24000,
       "output_sr": 48000,
       "bit_depth": 24,
-      "duration_s": 20.48,
-      "processing_time_s": 60.8
+      "duration_s": 15.36,
+      "processing_time_s": 53.5
     },
     {
       "input": "/home/moe/projects/New Arabic TTS/outputs/improved model/Improved_Model_test.wav",
@@ -16,8 +16,8 @@
       "input_sr": 24000,
       "output_sr": 48000,
       "bit_depth": 24,
-      "duration_s": 20.48,
-      "processing_time_s": 17.1
+      "duration_s": 15.36,
+      "processing_time_s": 11.3
     },
     {
       "input": "/home/moe/projects/New Arabic TTS/outputs/finetuned model/Finetuned_Model_test.wav",
@@ -25,8 +25,8 @@
       "input_sr": 24000,
       "output_sr": 48000,
       "bit_depth": 24,
-      "duration_s": 20.48,
-      "processing_time_s": 17.1
+      "duration_s": 15.36,
+      "processing_time_s": 11.3
     }
   ]
 }

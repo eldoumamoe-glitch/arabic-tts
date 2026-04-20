@@ -2,22 +2,22 @@
   "chunks": [
     {
       "index": 0,
-      "text": "أنا محمد عبدالله الدومة من السودان أحب البرمجة والابتكار وأعمل على تطوير نماذج ذكاء اصطناعي تساعد مجتمعي وأؤمن أن مشاركة المعرفة مهمة للتقدم وأدعوكم لدعمي",
-      "chars": 154,
-      "duration_s": 14.18,
-      "generation_time_s": 5.61
+      "text": "مرحباً بكم في عالم التكنولوجيا الحديثة.",
+      "chars": 39,
+      "duration_s": 2.94,
+      "generation_time_s": 0.7
     },
     {
       "index": 1,
-      "text": "لنَبني معًا مستقبلًا أفضل لأجيالنا القادمة",
-      "chars": 42,
-      "duration_s": 3.76,
-      "generation_time_s": 1.25
+      "text": "تُعدّ اللغة العربية من أقدم اللغات وأكثرها انتشاراً في العالم، إذ يتحدث بها أكثر من أربعمائة مليون شخص حول العالم.",
+      "chars": 114,
+      "duration_s": 9.41,
+      "generation_time_s": 2.39
     }
   ],
-  "total_generation_time": 6.86,
-  "total_duration_s": 18.99,
-  "rtf": 0.361,
+  "total_generation_time": 3.09,
+  "total_duration_s": 13.4,
+  "rtf": 0.231,
   "num_chunks": 2,
   "params": {
     "temperature": 0.3,

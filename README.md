@@ -267,10 +267,9 @@ Aaron Dreschner, Abrahan Mack, Adde Michal, Alexandra Hisakawa, Alison Dietlinde
 **Standard demo text** — this text is used consistently across all phases for comparison. It is also the default demo text when the model is published on HuggingFace:
 
 ```
-أنا محمد عبدالله الدومة من السودان أحب البرمجة والابتكار
-وأعمل على تطوير نماذج ذكاء اصطناعي تساعد مجتمعي
-وأؤمن أن مشاركة المعرفة مهمة للتقدم
-وأدعوكم لدعمي لنَبني معًا مستقبلًا أفضل لأجيالنا القادمة
+مرحباً بكم في عالم التكنولوجيا الحديثة.
+تُعدّ اللغة العربية من أقدم اللغات وأكثرها انتشاراً في العالم،
+إذ يتحدث بها أكثر من أربعمائة مليون شخص حول العالم.
 ```
 
 **Generation parameters** (baseline):
