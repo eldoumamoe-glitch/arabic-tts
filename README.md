@@ -2,6 +2,8 @@
 
 A systematic project to improve [Coqui XTTS-v2](https://github.com/coqui-ai/TTS) for high-quality Arabic text-to-speech generation. This repository documents the full journey from baseline evaluation to fine-tuned deployment, with reproducible benchmarks at every stage.
 
+![Pipeline Animation](docs/images/pipeline_animation.gif)
+
 ## Table of Contents
 
 - [Project Overview](#project-overview)
