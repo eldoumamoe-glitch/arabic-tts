@@ -8,6 +8,8 @@ models/finetuned/
 # Training data (too large for GitHub)
 data/egyptian/wavs/
 data/egyptian/rejected/
+data/Egyption/clean/wavs/
+data/Egyption/clean/rejected/
 data/raw/
 data/clean/
 

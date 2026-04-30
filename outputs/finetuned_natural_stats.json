@@ -1,0 +1,29 @@
+{
+  "chunks": [
+    {
+      "index": 0,
+      "text": "مرحباً بكم في عالم التكنولوجيا الحديثة.",
+      "chars": 39,
+      "duration_s": 3.57,
+      "generation_time_s": 0.98
+    },
+    {
+      "index": 1,
+      "text": "تُعدّ اللغة العربية من أقدم اللغات وأكثرها انتشاراً في العالم، إذ يتحدث بها أكثر من أربعمائة مليون شخص حول العالم.",
+      "chars": 114,
+      "duration_s": 8.21,
+      "generation_time_s": 2.03
+    }
+  ],
+  "total_generation_time": 3.0,
+  "total_duration_s": 12.89,
+  "rtf": 0.233,
+  "num_chunks": 2,
+  "params": {
+    "temperature": 0.55,
+    "top_p": 0.85,
+    "repetition_penalty": 2.5,
+    "sentence_pause": 0.4,
+    "seed": 12345
+  }
+}

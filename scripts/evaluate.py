@@ -38,14 +38,12 @@ BENCHMARKS_DIR = PROJECT_ROOT / "docs" / "benchmarks"
 
 # Output files from each phase
 FILES = {
-    "Phase 1: Baseline": PROJECT_ROOT / "outputs" / "original model" / "Original_Model_test.wav",
-    "Phase 3+4: Improved": PROJECT_ROOT / "outputs" / "improved model" / "Improved_Model_test.wav",
-    "Phase 6: Fine-tuned": PROJECT_ROOT / "outputs" / "finetuned model" / "Finetuned_Model_test.wav",
+    "Phase 1: Baseline": PROJECT_ROOT / "outputs" / "base_model_test.wav",
+    "Phase 6: Fine-tuned": PROJECT_ROOT / "outputs" / "finetuned_model_test.wav",
 }
 
 COLORS = {
     "Phase 1: Baseline": "#e74c3c",
-    "Phase 3+4: Improved": "#f39c12",
     "Phase 6: Fine-tuned": "#2ecc71",
 }
 
@@ -85,12 +83,15 @@ def measure_audio(wav, sr):
 
 def plot_waveforms(audio_data, sr_data):
     """Side-by-side waveform comparison."""
-    fig, axes = plt.subplots(3, 1, figsize=(14, 8), sharex=False)
+    n_plots = len(audio_data)
+    fig, axes = plt.subplots(n_plots, 1, figsize=(14, 4 * n_plots), sharex=False)
+    if n_plots == 1:
+        axes = [axes]
 
     for ax, (name, wav) in zip(axes, audio_data.items()):
         sr = sr_data[name]
         time_axis = np.arange(len(wav)) / sr
-        color = COLORS[name]
+        color = COLORS.get(name, "#3498db")
 
         ax.plot(time_axis, wav, color=color, linewidth=0.3, alpha=0.8)
         ax.fill_between(time_axis, wav, alpha=0.15, color=color)
@@ -102,7 +103,7 @@ def plot_waveforms(audio_data, sr_data):
         ax.axhline(y=0, color="gray", linewidth=0.5)
 
     axes[-1].set_xlabel("Time (seconds)")
-    fig.suptitle("Waveform Comparison — Same Text, Three Stages", fontsize=14, fontweight="bold")
+    fig.suptitle("Waveform Comparison — Base vs Fine-tuned", fontsize=14, fontweight="bold")
     fig.tight_layout()
     fig.savefig(IMAGES_DIR / "comparison_waveforms.png", dpi=150)
     plt.close(fig)
@@ -111,7 +112,10 @@ def plot_waveforms(audio_data, sr_data):
 
 def plot_spectrograms(audio_data, sr_data):
     """Spectrogram comparison."""
-    fig, axes = plt.subplots(3, 1, figsize=(14, 8))
+    n_plots = len(audio_data)
+    fig, axes = plt.subplots(n_plots, 1, figsize=(14, 4 * n_plots))
+    if n_plots == 1:
+        axes = [axes]
 
     for ax, (name, wav) in zip(axes, audio_data.items()):
         sr = sr_data[name]
@@ -121,7 +125,7 @@ def plot_spectrograms(audio_data, sr_data):
         ax.set_ylim(0, 8000)
 
     axes[-1].set_xlabel("Time (seconds)")
-    fig.suptitle("Spectrogram Comparison — Same Text, Three Stages", fontsize=14, fontweight="bold")
+    fig.suptitle("Spectrogram Comparison — Base vs Fine-tuned", fontsize=14, fontweight="bold")
     fig.tight_layout()
     fig.savefig(IMAGES_DIR / "comparison_spectrogram.png", dpi=150)
     plt.close(fig)
@@ -133,8 +137,8 @@ def plot_metrics_comparison(metrics):
     fig, axes = plt.subplots(1, 4, figsize=(16, 5))
 
     names = list(metrics.keys())
-    short_names = ["Baseline", "Improved", "Fine-tuned"]
-    colors = [COLORS[n] for n in names]
+    short_names = [n.split(": ")[-1] for n in names]
+    colors = [COLORS.get(n, "#3498db") for n in names]
 
     # Duration
     vals = [metrics[n]["duration_s"] for n in names]
@@ -168,7 +172,7 @@ def plot_metrics_comparison(metrics):
     for i, v in enumerate(vals):
         axes[3].text(i, v + 0.5, f"{v:.1f}%", ha="center", fontsize=10, fontweight="bold")
 
-    fig.suptitle("Audio Metrics Comparison — Baseline vs Improved vs Fine-tuned",
+    fig.suptitle("Audio Metrics Comparison — Base vs Fine-tuned",
                  fontsize=14, fontweight="bold")
     fig.tight_layout()
     fig.savefig(IMAGES_DIR / "comparison_metrics.png", dpi=150)

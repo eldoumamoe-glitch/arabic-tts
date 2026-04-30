@@ -35,7 +35,7 @@ from TTS.utils.manage import ModelManager
 
 # --- Paths ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data" / "egyptian"
+DATA_DIR = PROJECT_ROOT / "data" / "Egyption" / "clean"
 BASE_MODEL_DIR = PROJECT_ROOT / "models" / "base"
 OUTPUT_DIR = PROJECT_ROOT / "models" / "finetuned"
 
@@ -88,7 +88,7 @@ def main():
     # --- Dataset config ---
     config_dataset = BaseDatasetConfig(
         formatter="coqui",
-        dataset_name="egyptian_arabic",
+        dataset_name="egyptian_arabic_v2",
         path=str(DATA_DIR),
         meta_file_train=TRAIN_CSV,
         meta_file_val=EVAL_CSV,
@@ -126,7 +126,7 @@ def main():
         model_args=model_args,
         run_name="GPT_XTTS_AR_FT",
         project_name="Arabic_TTS",
-        run_description="Fine-tuning XTTS-v2 GPT on Egyptian Arabic (5h, single speaker)",
+        run_description="Fine-tuning XTTS-v2 GPT on Egyptian Arabic v2 (cleaned, ~10.6k clips, single speaker)",
         dashboard_logger="tensorboard",
         audio=audio_config,
         batch_size=BATCH_SIZE,
@@ -202,7 +202,7 @@ def main():
     # Save training summary
     summary = {
         "date": time.strftime("%Y-%m-%d %H:%M"),
-        "dataset": "egyptian_arabic (MAdel121/arabic-egy-cleaned)",
+        "dataset": "egyptian_arabic_v2 (Egyption/clean)",
         "train_clips": len(train_samples),
         "eval_clips": len(eval_samples),
         "epochs": NUM_EPOCHS,

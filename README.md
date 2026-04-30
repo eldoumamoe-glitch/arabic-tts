@@ -1,3 +1,24 @@
+---
+language:
+- ar
+license: other
+license_name: cpml
+license_link: https://coqui.ai/cpml
+tags:
+- text-to-speech
+- tts
+- arabic
+- xtts
+- speech-synthesis
+- deep-learning
+- pytorch
+- egyptian-arabic
+datasets:
+- MAdel121/arabic-egy-cleaned
+base_model: coqui/XTTS-v2
+pipeline_tag: text-to-speech
+---
+
 # Arabic TTS: Improving XTTS-v2 for Arabic Speech Synthesis
 
 A systematic project to improve [Coqui XTTS-v2](https://github.com/coqui-ai/TTS) for high-quality Arabic text-to-speech generation. This repository documents the full journey from baseline evaluation to fine-tuned deployment, with reproducible benchmarks at every stage.
@@ -276,11 +297,11 @@ Aaron Dreschner, Abrahan Mack, Adde Michal, Alexandra Hisakawa, Alison Dietlinde
 
 | Parameter | Value |
 |-----------|-------|
-| Temperature | 0.3 |
-| Top-p | 0.7 |
-| Repetition Penalty | 10.0 |
+| Temperature | 0.55 |
+| Top-p | 0.85 |
+| Repetition Penalty | 2.5 |
 | Speaker | Gilberto Mathias (built-in) |
-| Sentence Pause | 0.35s |
+| Sentence Pause | 0.4s |
 
 **Output file**: `outputs/original model/Original_Model_test.wav` — 19.33 seconds
 **Benchmark data**: `docs/benchmarks/baseline.json`
@@ -443,9 +464,8 @@ Each generated chunk goes through:
 
 | Step | What it does |
 |------|-------------|
-| **Pause compression** | Caps internal silence to 150ms — removes unnatural long pauses mid-sentence |
-| **Trailing silence trim** | Removes dead air at the end, keeps 50ms tail |
-| **Sentence taper** | Applies quadratic amplitude fade on the last 400ms for natural sentence endings |
+| **Pause compression** | Caps internal silence to 350ms — removes unnatural long pauses while preserving natural breathing rhythm |
+| **Trailing silence trim** | Removes dead air at the end, keeps 150ms tail for natural sentence endings |
 | **Rambling detection** | If output exceeds 1.5x expected duration, trims at nearest silence point |
 
 ### 4.3 Deterministic Generation
@@ -456,7 +476,7 @@ Each chunk gets a unique seed (`base_seed + chunk_index`), so the same input alw
 
 | Pause Type | Duration | Purpose |
 |-----------|----------|---------|
-| Sentence pause | 0.35s | Between sentences |
+| Sentence pause | 0.4s | Between sentences |
 | Paragraph pause | 0.70s | At end of full text |
 
 ### 4.5 First Improved Output
@@ -1102,7 +1122,7 @@ python scripts/infer.py --text "مرحباً بكم" --output outputs/msa.wav --
 
 # Custom parameters
 python scripts/infer.py --text "مرحباً" --output outputs/test.wav \
-    --speaker "Gilberto Mathias" --temperature 0.2 --top-p 0.6 --pause 0.4
+    --speaker "Gilberto Mathias" --temperature 0.55 --top-p 0.85 --rep-penalty 2.5 --pause 0.4
 ```
 
 ### Python API

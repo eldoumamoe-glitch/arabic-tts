@@ -11,7 +11,7 @@ approach used in professional TTS production pipelines.
 
 Usage:
     conda activate new-arabic-tts
-    python scripts/upsample.py --input outputs/finetuned\ model/Finetuned_Model_test.wav
+    python scripts/upsample.py --input outputs/finetuned_model_test.wav
 
 Output:
     Upsampled WAV saved alongside the input with _48kHz suffix.
@@ -92,9 +92,8 @@ def main():
 
     if args.all:
         files = [
-            PROJECT_ROOT / "outputs" / "original model" / "Original_Model_test.wav",
-            PROJECT_ROOT / "outputs" / "improved model" / "Improved_Model_test.wav",
-            PROJECT_ROOT / "outputs" / "finetuned model" / "Finetuned_Model_test.wav",
+            PROJECT_ROOT / "outputs" / "base_model_test.wav",
+            PROJECT_ROOT / "outputs" / "finetuned_model_test.wav",
         ]
     else:
         files = [Path(args.input)]

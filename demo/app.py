@@ -12,12 +12,11 @@ import tempfile
 MODEL_REPO = "Moeeldouma/arabic-tts-xtts-v2"
 
 SAMPLES = {
-    "Baseline (Original XTTS-v2)": "samples/Original_Model_test.wav",
-    "Fine-tuned (Egyptian Arabic)": "samples/Finetuned_Model_test.wav",
-    "Fine-tuned + 48kHz Upsampled": "samples/Finetuned_Model_test_48kHz.wav",
+    "BasicModel(Arabic)": "samples/base_natural.wav",
+    "FinetunedModel(Arabic)": "samples/finetuned_natural.wav",
 }
 
-DEMO_TEXT = """Standard Demo Text:
+DEMO_TEXT = """**Standard Demo Text:**
 
 مرحباً بكم في عالم التكنولوجيا الحديثة.
 تُعدّ اللغة العربية من أقدم اللغات وأكثرها انتشاراً في العالم،
@@ -50,16 +49,15 @@ def play_sample(choice):
     return None
 
 
-with gr.Blocks(title="Arabic TTS Demo") as demo:
+with gr.Blocks(title="Arabic TTS Demo", theme=gr.themes.Soft()) as demo:
     gr.Markdown(
         """
         # Arabic TTS - Fine-tuned XTTS-v2
 
-        Listen to the progression from base model to fine-tuned Arabic speech.
+        Listen to the progression from base model to fine-tuned Arabic speech with natural prosody.
         All samples use the same Arabic text for direct comparison.
 
         **Model:** [Moeeldouma/arabic-tts-xtts-v2](https://huggingface.co/Moeeldouma/arabic-tts-xtts-v2)
-        | **Code:** [GitHub](https://github.com/eldoumamoe-glitch/arabic-tts)
         | **Author:** Moe Eldouma
         """
     )
@@ -69,7 +67,7 @@ with gr.Blocks(title="Arabic TTS Demo") as demo:
     with gr.Row():
         selector = gr.Radio(
             choices=list(SAMPLES.keys()),
-            value="Fine-tuned (Egyptian Arabic)",
+            value="FinetunedModel(Arabic)",
             label="Select Version",
         )
 
@@ -77,21 +75,34 @@ with gr.Blocks(title="Arabic TTS Demo") as demo:
 
     selector.change(fn=play_sample, inputs=selector, outputs=audio_out)
 
-    # Auto-play on load
-    demo.load(fn=lambda: play_sample("Fine-tuned (Egyptian Arabic)"), outputs=audio_out)
+    # Auto-play best version on load
+    demo.load(fn=lambda: play_sample("FinetunedModel(Arabic)"), outputs=audio_out)
 
     gr.Markdown(
         """
         ---
+
+        ### Generation Parameters (Prosody-Tuned)
+
+        | Parameter | Value | Notes |
+        |-----------|-------|-------|
+        | Temperature | 0.55 | Natural prosodic variation |
+        | Top-p | 0.85 | Expressive intonation |
+        | Repetition Penalty | 2.5 | Preserves natural Arabic rhythm |
+        | Sentence Pause | 0.4s | Breathing room between sentences |
+        | Pause Compression | 350ms max | Preserves natural breathing pauses |
+
+        ---
+
         **How to use the full model locally:**
-        ```python
+        ```bash
         pip install TTS transformers==4.44.2
-        # See GitHub repo for complete instructions
+        # Clone and run inference:
+        python scripts/infer.py --text "مرحباً بكم" --output test.wav --finetuned
         ```
 
         **Limitations:** This demo plays pre-generated samples. For custom text,
-        download the model and run locally with GPU. See the
-        [GitHub repository](https://github.com/eldoumamoe-glitch/arabic-tts) for instructions.
+        download the model and run locally with GPU. See the model card for full instructions.
 
         Future versions will support Sudanese, Gulf, Levantine, and MSA dialects.
         """

@@ -1,13 +1,13 @@
 {
-  "date": "2026-04-20 14:47",
-  "dataset": "egyptian_arabic (MAdel121/arabic-egy-cleaned)",
-  "train_clips": 4328,
-  "eval_clips": 480,
+  "date": "2026-04-24 01:28",
+  "dataset": "egyptian_arabic_v2 (Egyption/clean)",
+  "train_clips": 10596,
+  "eval_clips": 100,
   "epochs": 4,
   "batch_size": 4,
   "grad_accum": 2,
   "learning_rate": 5e-06,
-  "training_hours": 0.55,
-  "output_path": "/home/moe/projects/New Arabic TTS/models/finetuned/run/training/GPT_XTTS_AR_FT-April-20-2026_02+14PM-81b7d55",
+  "training_hours": 1.25,
+  "output_path": "/home/moe/projects/New Arabic TTS/models/finetuned/run/training/GPT_XTTS_AR_FT-April-24-2026_12+14AM-17ca637",
   "base_model": "/home/moe/projects/New Arabic TTS/models/base"
 }

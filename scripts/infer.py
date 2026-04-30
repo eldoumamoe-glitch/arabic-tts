@@ -7,15 +7,30 @@ Improvements over baseline:
   3. Optimized generation parameters for Arabic
   4. Post-processing (pause compression, rambling detection, silence trim)
   5. Optional tashkeel for formal MSA mode
+  6. Reference audio conditioning for consistent voice identity
 
 Usage:
     conda activate new-arabic-tts
-    python scripts/infer.py --text "مرحباً بكم" --output outputs/test.wav
-    python scripts/infer.py --text-file input.txt --output outputs/test.wav
-    python scripts/infer.py --text "مرحباً" --tashkeel  # formal MSA mode
+
+    # Finetuned model with reference audio (recommended):
+    python scripts/infer.py --text "مرحباً بكم" --output outputs/test.wav --finetuned
+
+    # With explicit reference audio:
+    python scripts/infer.py --text "مرحباً بكم" --output outputs/test.wav \
+        --finetuned --ref-audio data/Egyption/clean/wavs/ep001_0057.wav
+
+    # Base model with built-in speaker (original behavior):
+    python scripts/infer.py --text "مرحباً بكم" --output outputs/test.wav --speaker "Gilberto Mathias"
+
+    # From text file:
+    python scripts/infer.py --text-file input.txt --output outputs/test.wav --finetuned
+
+    # Formal MSA mode with tashkeel:
+    python scripts/infer.py --text "مرحباً" --output outputs/test.wav --finetuned --tashkeel
 """
 
 import argparse
+import glob
 import os
 import re
 import sys
@@ -37,6 +52,13 @@ from scripts.arabic_preprocessor import ArabicPreprocessor
 SAMPLE_RATE = 24000
 MAX_CHARS_PER_CHUNK = 160  # XTTS-v2 Arabic char limit safety margin
 MIN_CHUNK_CHARS = 30       # Don't split below this
+
+# Default reference audio clips from training data (6-10s clips for best conditioning)
+DEFAULT_REF_AUDIOS = [
+    os.path.join(PROJECT_ROOT, "data", "Egyption", "clean", "wavs", "ep001_0057.wav"),
+    os.path.join(PROJECT_ROOT, "data", "Egyption", "clean", "wavs", "ep001_0060.wav"),
+    os.path.join(PROJECT_ROOT, "data", "Egyption", "clean", "wavs", "ep001_0064.wav"),
+]
 
 # Arabic sentence-ending punctuation
 SENTENCE_ENDINGS = re.compile(r"[.!?؟。！？]+")
@@ -132,29 +154,33 @@ def chunk_text(text, max_chars=MAX_CHARS_PER_CHUNK):
 
 # --- Post-Processing ---
 
-def compress_pauses(wav, sr, max_silence_ms=150):
-    """Cap internal silence duration to max_silence_ms."""
+def compress_pauses(wav, sr, max_silence_ms=350):
+    """Cap internal silence duration to max_silence_ms (vectorized)."""
     max_silence_samples = int(sr * max_silence_ms / 1000)
     threshold = 0.01
 
-    # Find silent regions
     is_silent = np.abs(wav) < threshold
-    result = []
-    silence_count = 0
 
-    for i, sample in enumerate(wav):
-        if is_silent[i]:
-            silence_count += 1
-            if silence_count <= max_silence_samples:
-                result.append(sample)
-        else:
-            silence_count = 0
-            result.append(sample)
+    # Find runs of silence using diff on the boolean array
+    changes = np.diff(is_silent.astype(np.int8), prepend=0)
+    starts = np.where(changes == 1)[0]   # silence begins
+    ends = np.where(changes == -1)[0]    # silence ends
 
-    return np.array(result, dtype=wav.dtype)
+    # Handle trailing silence run
+    if len(starts) > len(ends):
+        ends = np.append(ends, len(wav))
+
+    # Build mask: keep everything, but trim long silences
+    keep = np.ones(len(wav), dtype=bool)
+    for s, e in zip(starts, ends):
+        run_len = e - s
+        if run_len > max_silence_samples:
+            keep[s + max_silence_samples : e] = False
+
+    return wav[keep]
 
 
-def trim_trailing_silence(wav, sr, threshold=0.01, keep_ms=50):
+def trim_trailing_silence(wav, sr, threshold=0.01, keep_ms=150):
     """Trim silence from end, keeping a small tail."""
     keep_samples = int(sr * keep_ms / 1000)
     end = len(wav)
@@ -211,27 +237,89 @@ def apply_sentence_taper(wav, sr, taper_ms=400):
 
 def post_process_chunk(wav, sr):
     """Full post-processing pipeline for a single chunk."""
-    wav = compress_pauses(wav, sr, max_silence_ms=150)
+    wav = compress_pauses(wav, sr, max_silence_ms=350)
     wav = trim_trailing_silence(wav, sr)
-    wav = apply_sentence_taper(wav, sr, taper_ms=400)
+    # No artificial taper — let the model's natural sentence-ending prosody come through
     return wav
 
 
 # --- Main Inference ---
 
-def load_model(model_dir):
-    """Load XTTS-v2 model."""
+def find_best_checkpoint(finetuned_dir):
+    """Find the best_model.pth from the latest training run."""
+    pattern = os.path.join(finetuned_dir, "run", "training", "GPT_XTTS_AR_FT*", "best_model.pth")
+    matches = glob.glob(pattern)
+    if matches:
+        return max(matches, key=os.path.getmtime)
+    pattern = os.path.join(finetuned_dir, "**", "best_model.pth")
+    matches = glob.glob(pattern, recursive=True)
+    if matches:
+        return max(matches, key=os.path.getmtime)
+    return None
+
+
+def load_model(model_dir, finetuned_checkpoint=None):
+    """Load XTTS-v2 model, optionally with finetuned GPT weights.
+
+    Args:
+        model_dir: Base model directory (with config.json, model.pth, vocab.json).
+        finetuned_checkpoint: Path to finetuned best_model.pth (optional).
+
+    Returns:
+        Loaded Xtts model on GPU in eval mode.
+    """
     config = XttsConfig()
     config.load_json(os.path.join(model_dir, "config.json"))
     model = Xtts.init_from_config(config)
     model.load_checkpoint(config, checkpoint_dir=model_dir)
+
+    if finetuned_checkpoint:
+        print(f"  Loading finetuned weights: {os.path.basename(finetuned_checkpoint)}")
+        checkpoint = torch.load(finetuned_checkpoint, map_location="cpu", weights_only=False)
+        model_state = checkpoint.get("model", checkpoint)
+        # GPTTrainer saves with 'xtts.' prefix — strip it
+        stripped = {}
+        for k, v in model_state.items():
+            new_key = k.replace("xtts.", "", 1) if k.startswith("xtts.") else k
+            stripped[new_key] = v
+        current = model.state_dict()
+        matched = {k: v for k, v in stripped.items() if k in current and v.shape == current[k].shape}
+        current.update(matched)
+        model.load_state_dict(current)
+        print(f"  Loaded {len(matched)}/{len(stripped)} finetuned weights")
+
     model.cuda()
     model.eval()
     return model
 
 
-def load_speaker(model_dir, speaker_name):
-    """Load a built-in speaker embedding."""
+def load_speaker_from_ref(model, ref_audio_paths):
+    """Compute speaker conditioning from reference audio clips.
+
+    This produces gpt_cond_latent and speaker_embedding that match the
+    actual voice in the training data, preventing voice identity drift.
+
+    Args:
+        model: Loaded Xtts model.
+        ref_audio_paths: List of reference WAV file paths.
+
+    Returns:
+        (gpt_cond_latent, speaker_embedding) tensors on GPU.
+    """
+    existing = [p for p in ref_audio_paths if os.path.exists(p)]
+    if not existing:
+        raise FileNotFoundError(
+            f"No reference audio found. Searched:\n  " + "\n  ".join(ref_audio_paths)
+        )
+    print(f"  Computing speaker conditioning from {len(existing)} reference clip(s)...")
+    gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(
+        audio_path=existing
+    )
+    return gpt_cond_latent.cuda(), speaker_embedding.cuda()
+
+
+def load_speaker_builtin(model_dir, speaker_name):
+    """Load a built-in speaker embedding (for base model only)."""
     speakers = torch.load(
         os.path.join(model_dir, "speakers_xtts.pth"), weights_only=False
     )
@@ -251,10 +339,10 @@ def generate(
     gpt_cond_latent,
     speaker_embedding,
     preprocessor=None,
-    temperature=0.3,
-    top_p=0.7,
-    repetition_penalty=10.0,
-    sentence_pause=0.35,
+    temperature=0.55,
+    top_p=0.85,
+    repetition_penalty=2.5,
+    sentence_pause=0.4,
     paragraph_pause=0.7,
     seed=12345,
 ):
@@ -350,7 +438,22 @@ def generate(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Arabic TTS Inference")
+    parser = argparse.ArgumentParser(
+        description="Arabic TTS Inference",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  # Finetuned model (recommended):
+  python scripts/infer.py --text "مرحباً بكم" --output outputs/test.wav --finetuned
+
+  # With custom reference audio:
+  python scripts/infer.py --text "مرحباً بكم" --output outputs/test.wav \\
+      --finetuned --ref-audio my_voice.wav
+
+  # Base model with built-in speaker:
+  python scripts/infer.py --text "مرحباً بكم" --output outputs/test.wav \\
+      --speaker "Gilberto Mathias"
+""",
+    )
     parser.add_argument("--text", type=str, help="Arabic text to synthesize")
     parser.add_argument("--text-file", type=str, help="Read text from file")
     parser.add_argument("--output", type=str, required=True, help="Output WAV path")
@@ -358,13 +461,34 @@ def main():
         "--model-dir",
         type=str,
         default=os.path.join(PROJECT_ROOT, "models", "base"),
-        help="Model directory",
+        help="Base model directory (default: models/base)",
     )
-    parser.add_argument("--speaker", type=str, default="Gilberto Mathias")
-    parser.add_argument("--temperature", type=float, default=0.3)
-    parser.add_argument("--top-p", type=float, default=0.7)
-    parser.add_argument("--rep-penalty", type=float, default=10.0)
-    parser.add_argument("--pause", type=float, default=0.35)
+    parser.add_argument(
+        "--finetuned",
+        action="store_true",
+        help="Use finetuned model (auto-finds best checkpoint)",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        help="Path to a specific finetuned checkpoint (overrides --finetuned auto-detection)",
+    )
+    parser.add_argument(
+        "--ref-audio",
+        type=str,
+        nargs="+",
+        help="Reference audio WAV(s) for speaker conditioning (recommended for finetuned model)",
+    )
+    parser.add_argument(
+        "--speaker",
+        type=str,
+        default=None,
+        help="Built-in speaker name (for base model only, e.g. 'Gilberto Mathias')",
+    )
+    parser.add_argument("--temperature", type=float, default=0.55)
+    parser.add_argument("--top-p", type=float, default=0.85)
+    parser.add_argument("--rep-penalty", type=float, default=2.5)
+    parser.add_argument("--pause", type=float, default=0.4)
     parser.add_argument("--seed", type=int, default=12345)
     parser.add_argument(
         "--tashkeel", action="store_true",
@@ -380,13 +504,33 @@ def main():
         with open(args.text_file, "r", encoding="utf-8") as f:
             text = f.read().strip()
 
-    # Load model
-    print(f"Loading model from {args.model_dir}...")
-    model = load_model(args.model_dir)
+    # Resolve finetuned checkpoint
+    finetuned_ckpt = None
+    if args.checkpoint:
+        finetuned_ckpt = args.checkpoint
+    elif args.finetuned:
+        finetuned_dir = os.path.join(PROJECT_ROOT, "models", "finetuned")
+        finetuned_ckpt = find_best_checkpoint(finetuned_dir)
+        if not finetuned_ckpt:
+            print("ERROR: --finetuned specified but no checkpoint found!")
+            print(f"  Searched: {finetuned_dir}")
+            sys.exit(1)
 
-    # Load speaker
-    print(f"Loading speaker: {args.speaker}")
-    gpt_cond_latent, speaker_embedding = load_speaker(args.model_dir, args.speaker)
+    # Load model
+    model_label = "finetuned" if finetuned_ckpt else "base"
+    print(f"Loading {model_label} model from {args.model_dir}...")
+    model = load_model(args.model_dir, finetuned_checkpoint=finetuned_ckpt)
+
+    # Load speaker conditioning
+    if args.speaker and not args.ref_audio:
+        # Explicit built-in speaker requested (base model usage)
+        print(f"Loading built-in speaker: {args.speaker}")
+        gpt_cond_latent, speaker_embedding = load_speaker_builtin(args.model_dir, args.speaker)
+    else:
+        # Use reference audio (required for consistent finetuned voice)
+        ref_paths = args.ref_audio if args.ref_audio else DEFAULT_REF_AUDIOS
+        print(f"Loading speaker from reference audio...")
+        gpt_cond_latent, speaker_embedding = load_speaker_from_ref(model, ref_paths)
 
     # Create preprocessor
     preprocessor = ArabicPreprocessor(enable_tashkeel=args.tashkeel)
@@ -416,6 +560,7 @@ def main():
     stats = result["stats"]
     print(f"\nResult:")
     print(f"  Output:     {args.output}")
+    print(f"  Model:      {model_label}")
     print(f"  Duration:   {stats['total_duration_s']}s")
     print(f"  Gen Time:   {stats['total_generation_time']}s")
     print(f"  RTF:        {stats['rtf']}")
