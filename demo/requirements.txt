@@ -1,2 +1,6 @@
+TTS
+transformers==4.44.2
 gradio
-huggingface_hub
+num2words
+soundfile
+numpy
